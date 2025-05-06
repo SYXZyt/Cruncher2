@@ -175,13 +175,7 @@ namespace Cruncher.Script.Interpreter
                         return;
                     }
 
-                    if (requested < current)
-                    {
-                        IO.LogWarning($"Version requirement: [yellow]{version.Major.lexeme}.{version.Minor.lexeme}.{version.Patch.lexeme}[/] is older than current version: [yellow]{current.major}.{current.minor}.{current.patch}[/]. Consider updating");
-                    }
-                    else
-
-                        IO.LogSuccess($"Version requirement: [yellow]{version.Major.lexeme}.{version.Minor.lexeme}.{version.Patch.lexeme}[/]");
+                    IO.LogSuccess($"Version requirement: [yellow]{version.Major.lexeme}.{version.Minor.lexeme}.{version.Patch.lexeme}[/]");
                 }
             }
         }
