@@ -56,7 +56,10 @@ namespace Cruncher
             Package[] packages = generator.Generate(out string outputDir);
 
             if (generator.DidErrorOccur())
+            {
+                IO.LogError("Generating failed");
                 return;
+            }
 
             Packer packer = new(packages);
             packer.PackPackages(outputDir);
