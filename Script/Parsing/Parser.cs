@@ -141,6 +141,25 @@ namespace Cruncher.Script.Parsing
             return new OutputExt(function, paramList);
         }
 
+        private OutputDir ParseOutputDir()
+        {
+            Token function = Current;
+            ++mCurrent;
+
+            ParamList paramList = ParseParamList();
+            if (paramList is null)
+                return null;
+
+            if (paramList.Parameters.Length != 1)
+            {
+                IO.TokenError("Expected one parameter for output_dir", function);
+                mErrorOccurred = true;
+                return null;
+            }
+
+            return new OutputDir(function, paramList);
+        }
+
         private Node ParseFunctionCall()
         {
             if (Current.type == TokenType.REQUIRE_VERSION)
@@ -155,6 +174,8 @@ namespace Cruncher.Script.Parsing
                 return ParseAddFolder();
             else if (Current.type == TokenType.OUTPUT_EXTENSION)
                 return ParseOutputExtension();
+            else if (Current.type == TokenType.OUTPUT_DIR)
+                return ParseOutputDir();
 
             string msg;
             if (Current.type == TokenType.IDENTIFIER)

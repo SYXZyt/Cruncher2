@@ -11,6 +11,8 @@ namespace Cruncher.Script.Interpreter
         private bool mErrorOccurred = false;
         private readonly Node[] mNodes = nodes;
 
+        private string mOutputDir = "";
+
         private readonly Dictionary<string, Token> mAlias = [];
         private readonly List<Package> mPackages = [];
 
@@ -229,8 +231,10 @@ namespace Cruncher.Script.Interpreter
             return false;
         }
 
-        public Package[] Generate()
+        public Package[] Generate(out string oOutputDir)
         {
+            oOutputDir = "";
+
             IO.Log("Generating");
             CheckVersion();
             if (CheckFailure())
@@ -342,6 +346,34 @@ namespace Cruncher.Script.Interpreter
                     package.Extension = ext.lexeme;
                     IO.LogSuccess($"Set file extension: [yellow]'.{ext.lexeme}'[/] for package: [yellow]{package.Name}[/]");
                 }
+                else if (node is OutputDir outputDir)
+                {
+                    Version required = new(2, 1, 0);
+                    if (mVersion < required)
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError($"output_dir requires version: [yellow]{required.major}.{required.minor}.{required.patch}[/]");
+                        continue;
+                    }
+
+                    if (outputDir.ParamList.Parameters.Length != 1)
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError("output_dir must have 1 parameter");
+                        continue;
+                    }
+
+                    ref Token param = ref outputDir.ParamList.Parameters[0];
+                    if (param.type is not TokenType.IDENTIFIER and not TokenType.STRING)
+                    {
+                        mErrorOccurred = true;
+                        IO.TokenError("Output directory must be either an identifier or a string", param);
+                        continue;
+                    }
+
+                    mOutputDir = param.lexeme;
+                    IO.LogSuccess($"Set output directory: [yellow]'{mOutputDir}'[/]");
+                }
                 else if (node is RequireVersion or Alias or PackageDef) { }
                 else
                 {
@@ -350,6 +382,7 @@ namespace Cruncher.Script.Interpreter
                 }
             }
 
+            oOutputDir = mOutputDir;
             return [.. mPackages];
         }
     }

@@ -53,13 +53,13 @@ namespace Cruncher
                 return;
 
             Generator generator = new(nodes);
-            Package[] packages = generator.Generate();
+            Package[] packages = generator.Generate(out string outputDir);
 
             if (generator.DidErrorOccur())
                 return;
 
             Packer packer = new(packages);
-            packer.PackPackages();
+            packer.PackPackages(outputDir);
         }
     }
 }

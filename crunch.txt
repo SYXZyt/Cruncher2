@@ -7,4 +7,5 @@ add_package(TextFile)
 add_file(TextFile FileType_TEXT "testA.txt")
 add_folder(TextFile FolderTest)
 
+output_dir(Ouput/)
 output_extension(TextFile pak)

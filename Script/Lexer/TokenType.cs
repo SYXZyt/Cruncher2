@@ -30,6 +30,7 @@
 
         #region 2.1.0
         OUTPUT_EXTENSION,
+        OUTPUT_DIR,
         #endregion
     }
 }

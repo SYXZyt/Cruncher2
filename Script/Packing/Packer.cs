@@ -66,7 +66,7 @@ namespace Cruncher.Script.Packing
             return null;
         }
 
-        private void Pack(Package package)
+        private void Pack(Package package, string outputDir)
         {
             Header header = new()
             {
@@ -128,7 +128,8 @@ namespace Cruncher.Script.Packing
             }
 
             //We should now have all the data we need to write the package to disk
-            string packageName = Path.Combine(Directory.GetCurrentDirectory(), $"{package.Name}.{package.Extension ?? "crunch"}");
+            Directory.CreateDirectory(Directory.GetCurrentDirectory() + "/" + outputDir + "/");
+            string packageName = Path.Combine(Directory.GetCurrentDirectory() + "/" + outputDir + "/", $"{package.Name}.{package.Extension ?? "crunch"}");
             using FileStream stream = new(packageName, FileMode.Create, FileAccess.Write);
             using BinaryWriter writer = new(stream);
             writer.Write(header.Magic);
@@ -158,10 +159,10 @@ namespace Cruncher.Script.Packing
             IO.LogSuccess($"Packed {package.Files.Length} files into {packageName}");
         }
 
-        public void PackPackages()
+        public void PackPackages(string outputDir)
         {
             foreach (Package package in mPackages)
-                Pack(package);
+                Pack(package, outputDir);
         }
     }
 }
