@@ -107,7 +107,7 @@ namespace Cruncher.Script.Interpreter
                 }
                 else
                 {
-                    IO.LogError($"No alias found for file type: [yellow]'{fileExt}'[/]");
+                    IO.LogError($"No alias found for file type: [yellow]'{fileExt}'[/] (for file '[yellow]{fileName}[/]')");
                     mErrorOccurred = true;
                 }
             }
