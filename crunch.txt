@@ -1,0 +1,8 @@
+﻿required_version(2 0 0)
+
+alias(txt FileType_TEXT)
+
+add_package(TextFile)
+
+add_file(TextFile FileType_TEXT "testA.txt")
+add_folder(TextFile FolderTest)
