@@ -14,6 +14,8 @@ namespace Cruncher.Script.Interpreter
         private readonly Dictionary<string, Token> mAlias = [];
         private readonly List<Package> mPackages = [];
 
+        private Version mVersion = Version.Current;
+
         public bool DidErrorOccur() =>
             mErrorOccurred;
 
@@ -46,10 +48,29 @@ namespace Cruncher.Script.Interpreter
             }
         }
 
-        private void AddFile(string package, string file, TokenType fileType)
+        private Package GetPackage(Token token)
         {
-            Package pkg = mPackages.FirstOrDefault(p => p.Name == package, null);
+            if (token.type != TokenType.IDENTIFIER && token.type != TokenType.STRING)
+            {
+                mErrorOccurred = true;
+                IO.TokenError("Package name must be either an identifier or a string", token);
+                return null;
+            }
 
+            string packageName = token.lexeme;
+            Package pkg = mPackages.FirstOrDefault(p => p.Name == packageName, null);
+            if (pkg == null)
+            {
+                mErrorOccurred = true;
+                IO.LogError($"Package with name {packageName} does not exist");
+                return null;
+            }
+
+            return pkg;
+        }
+
+        private void AddFile(Package pkg, string file, TokenType fileType)
+        {
             if (!File.Exists(file))
             {
                 IO.LogError($"File {Path.GetFullPath(file)} does not exist");
@@ -59,20 +80,12 @@ namespace Cruncher.Script.Interpreter
             {
                 //Add the file to the package
                 pkg.AddFile(file, fileType);
-                IO.LogSuccess($"Added file: [yellow]{file}[/] to package: [yellow]{package}[/]");
+                IO.LogSuccess($"Added file: [yellow]{file}[/] to package: [yellow]{pkg.Name}[/]");
             }
         }
 
-        private void AddFolder(string package, string folder)
+        private void AddFolder(Package pkg, string folder)
         {
-            Package pkg = mPackages.FirstOrDefault(p => p.Name == package, null);
-            if (!Directory.Exists(folder))
-            {
-                IO.LogError($"Folder {Path.GetFullPath(folder)} does not exist");
-                mErrorOccurred = true;
-                return;
-            }
-
             if (!Directory.Exists(folder))
             {
                 IO.LogError($"Folder {folder} does not exist");
@@ -88,7 +101,7 @@ namespace Cruncher.Script.Interpreter
                 if (mAlias.TryGetValue(fileExt, out Token fileType))
                 {
                     pkg.AddFile(file, fileType.type);
-                    IO.LogSuccess($"Added file: [yellow]{file}[/] to package: [yellow]{package}[/]");
+                    IO.LogSuccess($"Added file: [yellow]{file}[/] to package: [yellow]{pkg.Name}[/]");
                 }
                 else
                 {
@@ -176,8 +189,10 @@ namespace Cruncher.Script.Interpreter
                     }
 
                     IO.LogSuccess($"Version requirement: [yellow]{version.Major.lexeme}.{version.Minor.lexeme}.{version.Patch.lexeme}[/]");
+                    mVersion = requested;
                 }
             }
+
         }
 
         private bool CheckFailure()
@@ -210,13 +225,7 @@ namespace Cruncher.Script.Interpreter
             {
                 if (node is AddFile addFile)
                 {
-                    string packageName = addFile.ParamList.Parameters[0].lexeme;
-                    if (!mPackages.Any(pkg => pkg.Name == packageName))
-                    {
-                        mErrorOccurred = true;
-                        IO.LogError($"Package with name {packageName} does not exist");
-                        continue;
-                    }
+                    Package package = GetPackage(addFile.ParamList.Parameters[0]);
 
                     TokenType fileType = addFile.ParamList.Parameters[1].type;
 
@@ -240,18 +249,12 @@ namespace Cruncher.Script.Interpreter
 
                         string fileExt = Path.GetExtension(param.lexeme)[1..^0];
 
-                        AddFile(packageName, param.lexeme, fileType);
+                        AddFile(package, param.lexeme, fileType);
                     }
                 }
                 else if (node is AddFolder addFolder)
                 {
-                    string packageName = addFolder.ParamList.Parameters[0].lexeme;
-                    if (!mPackages.Any(pkg => pkg.Name == packageName))
-                    {
-                        mErrorOccurred = true;
-                        IO.LogError($"Package with name {packageName} does not exist");
-                        continue;
-                    }
+                    Package package = GetPackage(addFolder.ParamList.Parameters[0]);
 
                     if (addFolder.ParamList.Parameters.Length < 2)
                     {
@@ -268,7 +271,53 @@ namespace Cruncher.Script.Interpreter
                         continue;
                     }
 
-                    AddFolder(packageName, param.lexeme);
+                    AddFolder(package, param.lexeme);
+                }
+                else if (node is OutputExt outputExt)
+                {
+                    Version required = new(2, 1, 0);
+                    if (mVersion < required)
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError($"output_extension requires version: [yellow]{required.major}.{required.minor}.{required.patch}[/]");
+                        continue;
+                    }
+
+                    if (outputExt.Params.Parameters.Length != 2)
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError("output_extension must have 2 parameters");
+                        continue;
+                    }
+
+                    Package package = GetPackage(outputExt.Params.Parameters[0]);
+                    Token ext = outputExt.Params.Parameters[1];
+                    if (ext.type is not TokenType.IDENTIFIER or TokenType.STRING)
+                    {
+                        mErrorOccurred = true;
+                        IO.TokenError("File extension must be either an identifier or a string", ext);
+                        continue;
+                    }
+
+                    if (ext.lexeme.StartsWith('.'))
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError("Do not include the dot");
+                        continue;
+                    }
+
+                    if (ext.lexeme.Length == 0)
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError("File extension must not be empty");
+                        continue;
+                    }
+
+                    if (package.Extension is not null)
+                        IO.LogWarning("File extension has already been defined for package '[yellow][/]'");
+
+                    package.Extension = ext.lexeme;
+                    IO.LogSuccess($"Set file extension: [yellow]'.{ext.lexeme}'[/] for package: [yellow]{package.Name}[/]");
                 }
                 else if (node is RequireVersion or Alias or PackageDef) { }
                 else

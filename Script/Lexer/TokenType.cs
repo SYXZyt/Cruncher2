@@ -27,5 +27,9 @@
         ADD_FILE,
         ADD_FOLDER,
         #endregion
+
+        #region 2.1.0
+        OUTPUT_EXTENSION,
+        #endregion
     }
 }

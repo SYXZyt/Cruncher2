@@ -175,6 +175,7 @@ namespace Cruncher.Script.Lexer
             keywords["add_package"] = TokenType.ADD_PACKAGE;
             keywords["add_file"] = TokenType.ADD_FILE;
             keywords["add_folder"] = TokenType.ADD_FOLDER;
+            keywords["output_extension"] = TokenType.OUTPUT_EXTENSION;
 
             //File types
             keywords["FileType_TEXT"] = TokenType.FT_TEXT;

@@ -45,7 +45,7 @@ namespace Cruncher.Script.Packing
 
         private readonly Package[] mPackages = packages;
 
-        private byte[] GetFileContents(string filePath, TokenType fileType)
+        private static byte[] GetFileContents(string filePath, TokenType fileType)
         {
             if (!File.Exists(filePath))
             {
@@ -128,7 +128,7 @@ namespace Cruncher.Script.Packing
             }
 
             //We should now have all the data we need to write the package to disk
-            string packageName = Path.Combine(Directory.GetCurrentDirectory(), $"{package.Name}.pkg");
+            string packageName = Path.Combine(Directory.GetCurrentDirectory(), $"{package.Name}.{package.Extension ?? "crunch"}");
             using FileStream stream = new(packageName, FileMode.Create, FileAccess.Write);
             using BinaryWriter writer = new(stream);
             writer.Write(header.Magic);

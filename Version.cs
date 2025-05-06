@@ -1,6 +1,6 @@
 ﻿namespace Cruncher
 {
-    struct Version(byte major, byte minor, byte patch)
+    public struct Version(byte major, byte minor, byte patch)
     {
         public byte major = major;
         public byte minor = minor;

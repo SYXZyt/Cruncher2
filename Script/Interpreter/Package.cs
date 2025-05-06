@@ -6,7 +6,15 @@ namespace Cruncher.Script.Interpreter
     public sealed class Package(string name)
     {
         private readonly string mName = name;
+        private string mExt = null;
+
         private readonly List<Tuple<string, TokenType>> mFiles = [];
+
+        public string Extension
+        {
+            get => mExt;
+            set => mExt = value;
+        }
 
         public string Name =>
             mName;
