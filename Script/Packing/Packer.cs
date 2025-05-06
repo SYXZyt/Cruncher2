@@ -11,7 +11,7 @@ namespace Cruncher.Script.Packing
         {
             public uint Magic; //0x434E5243 We actually need to reverse this since, otherwise in will be CNRC in a hex editor. We want to store it in big endian
             public uint Version; //This will be the requested version of cruncher, NOT the current version supported by this build
-            public ushort FileCount; //The number of files in the package
+            public ulong FileCount; //The number of files in the package
             public ulong FileTableOffset; //The offset to the start of the file table
             public ulong DataOffset; //The offset to the start of the data section
         }
@@ -41,7 +41,6 @@ namespace Cruncher.Script.Packing
         struct FileData
         {
             public byte[] data;
-            public byte[] padding; //The next data section should begin on a 16 byte boundary
         }
 
         private readonly Package[] mPackages = packages;
@@ -73,7 +72,7 @@ namespace Cruncher.Script.Packing
             {
                 Magic = 0x434E5243,
                 Version = Version.Current.PackedVersion,
-                FileCount = (ushort)package.Files.Length,
+                FileCount = (ulong)package.Files.Length,
                 FileTableOffset = (ulong)Marshal.SizeOf<Header>(),
                 DataOffset = 0
             };
@@ -89,8 +88,8 @@ namespace Cruncher.Script.Packing
             {
                 FileEntry entry = new()
                 {
-                    name = package.Files[i].Item1,
-                    hash = package.Files[i].Item1.Hash(),
+                    name = package.Files[i].Item1.NormaliseDirectory(),
+                    hash = package.Files[i].Item1.NormaliseDirectory().Hash(),
                     offset = 0,
                     size = 0
                 };
@@ -98,22 +97,17 @@ namespace Cruncher.Script.Packing
                 fileTable.entries[i] = entry;
             }
 
-            //We should now know the size of the file table and header combined
-            //The data section should be aligned to 16 bytes, so we can add some padding after the file table
             ulong totalSizeOfHeaderAndFileTable = (ulong)Marshal.SizeOf<Header>() + fileTable.GetSize();
-            ulong padding = 0;
-            if (totalSizeOfHeaderAndFileTable % 16 != 0)
-                padding = 16 - (totalSizeOfHeaderAndFileTable % 16);
 
             header.FileTableOffset = (ulong)Marshal.SizeOf<Header>();
-            header.DataOffset = totalSizeOfHeaderAndFileTable + padding;
+            header.DataOffset = totalSizeOfHeaderAndFileTable;
 
             //We now know where the data section begins. With this, we can start loading in files
             //and calculating their offsets and sizes
-            ulong currentOffset = header.DataOffset;
+            ulong currentOffset = 0ul;
             for (int i = 0; i < package.Files.Length; i++)
             {
-                FileEntry entry = fileTable.entries[i];
+                ref FileEntry entry = ref fileTable.entries[i];
                 string filePath = Path.Combine(Directory.GetCurrentDirectory(), entry.name);
                 byte[] data = GetFileContents(filePath, package.Files[i].Item2);
 
@@ -127,19 +121,10 @@ namespace Cruncher.Script.Packing
                 entry.size = (ulong)data.Length;
                 currentOffset += entry.size;
 
-                //Add padding to ensure the next file is aligned to 16 bytes
                 fileDatas[i] = new FileData
                 {
                     data = data,
-                    padding = []
                 };
-
-                if (currentOffset % 16 != 0)
-                {
-                    ulong pad = 16 - (currentOffset % 16);
-                    fileDatas[i].padding = new byte[pad];
-                    currentOffset += pad;
-                }
             }
 
             //We should now have all the data we need to write the package to disk
@@ -151,18 +136,21 @@ namespace Cruncher.Script.Packing
             writer.Write(header.FileCount);
             writer.Write(header.FileTableOffset);
             writer.Write(header.DataOffset);
-            writer.Write(new byte[padding]);
             foreach (FileEntry entry in fileTable.entries)
             {
                 writer.Write(entry.hash);
-                writer.Write(entry.name);
+
+                //If we write the string directly, then it will write an encoded length, which we don't want
+                //since we use null terminators
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(entry.name);
+                writer.Write(bytes);
                 writer.Write((byte)0x00); //Null terminator
+
+                writer.Write(entry.size);
+                writer.Write(entry.offset);
             }
             foreach (FileData fileData in fileDatas)
-            {
                 writer.Write(fileData.data);
-                writer.Write(fileData.padding);
-            }
 
             writer.Flush();
             stream.Close();

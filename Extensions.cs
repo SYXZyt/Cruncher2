@@ -10,6 +10,22 @@ namespace Cruncher
             return char.IsLetterOrDigit(c) || c == '_' || c == '/';
         }
 
+        public static string NormaliseDirectory(this string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return path;
+
+            //Remove any trailing slashes
+            while (path.EndsWith('/') || path.EndsWith('\\'))
+                path = path[0..^1];
+
+            //To keep consistency between platforms, we will always prefer forward slashes
+            //since Windows is the only platform that uses backslashes BUT also supports forward slashes
+            path = path.Replace('\\', '/');
+
+            return path;
+        }
+
         //https://www.azillionmonkeys.com/qed/hash.html
         public static ulong Hash(this string str)
         {
