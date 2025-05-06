@@ -1,4 +1,4 @@
-﻿required_version(2 1 0)
+﻿required_version(latest)
 
 alias(txt FileType_TEXT)
 

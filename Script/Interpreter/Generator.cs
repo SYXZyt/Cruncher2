@@ -157,23 +157,46 @@ namespace Cruncher.Script.Interpreter
             RequireVersion version = (RequireVersion)node;
 
             //Make sure that only numbers were provided
-            if (version.ParamList.Parameters.Length != 3)
+            if (
+                (version.ParamList.Parameters.Length != 3) &&
+                !(
+                    version.ParamList.Parameters.Length == 1 &&
+                    version.ParamList.Parameters[0].type == TokenType.IDENTIFIER &&
+                    version.ParamList.Parameters[0].lexeme == "latest")
+                )
             {
                 mErrorOccurred = true;
                 IO.LogError("Version requirement must have 3 parameters");
             }
             else
             {
-                if (version.Major.type != TokenType.NUMBER ||
+                if (
+                    (version.Major.type != TokenType.NUMBER ||
                     version.Minor.type != TokenType.NUMBER ||
-                    version.Patch.type != TokenType.NUMBER)
+                    version.Patch.type != TokenType.NUMBER) &&
+                !(
+                    version.ParamList.Parameters.Length == 1 &&
+                    version.ParamList.Parameters[0].type == TokenType.IDENTIFIER &&
+                    version.ParamList.Parameters[0].lexeme == "latest")
+                )
                 {
                     mErrorOccurred = true;
                     IO.LogError("Version requirement must be numbers");
                 }
                 else
                 {
-                    Version requested = new(byte.Parse(version.Major.lexeme), byte.Parse(version.Minor.lexeme), byte.Parse(version.Patch.lexeme));
+                    Version requested;
+
+                    if (
+                    version.ParamList.Parameters.Length == 1 &&
+                    version.ParamList.Parameters[0].type == TokenType.IDENTIFIER &&
+                    version.ParamList.Parameters[0].lexeme == "latest")
+                    {
+                        requested = Version.Current;
+                    }
+                    else
+                        requested = new(byte.Parse(version.Major.lexeme), byte.Parse(version.Minor.lexeme), byte.Parse(version.Patch.lexeme));
+
                     Version current = Version.Current;
                     if (requested > current)
                     {
@@ -188,7 +211,7 @@ namespace Cruncher.Script.Interpreter
                         return;
                     }
 
-                    IO.LogSuccess($"Version requirement: [yellow]{version.Major.lexeme}.{version.Minor.lexeme}.{version.Patch.lexeme}[/]");
+                    IO.LogSuccess($"Version requirement: [yellow]{requested.major}.{requested.minor}.{requested.patch}[/]");
                     mVersion = requested;
                 }
             }
