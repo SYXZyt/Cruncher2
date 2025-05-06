@@ -128,7 +128,7 @@ namespace Cruncher.Script.Packing
             }
 
             //We should now have all the data we need to write the package to disk
-            string packageName = Path.Combine(Directory.GetCurrentDirectory(), $"{package.Name}.crunch");
+            string packageName = Path.Combine(Directory.GetCurrentDirectory(), $"{package.Name}.pkg");
             using FileStream stream = new(packageName, FileMode.Create, FileAccess.Write);
             using BinaryWriter writer = new(stream);
             writer.Write(header.Magic);
