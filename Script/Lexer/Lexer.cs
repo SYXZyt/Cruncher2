@@ -28,6 +28,17 @@ namespace Cruncher.Script.Lexer
             }
         }
 
+        private char Peek
+        {
+            get
+            {
+                if (mPos + 1 >= mData.Length)
+                    return '\0';
+
+                return mData[mPos + 1];
+            }
+        }
+
         private void Advance(int amount = 1)
         {
             mPos += amount;
@@ -127,6 +138,10 @@ namespace Cruncher.Script.Lexer
                 {
                     tokens.Add(new Token(TokenType.COMMA, ",", mLine, mPosOnLine));
                     Advance();
+                }
+                else if (CurrentChar == '/' && Peek == '/')
+                {
+                    SkipLine();
                 }
                 else
                 {
