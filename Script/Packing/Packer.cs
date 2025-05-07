@@ -54,7 +54,7 @@ namespace Cruncher.Script.Packing
         }
 
         private readonly Package[] mPackages = packages;
-        private const float AcceptableCompressionPercent = 20;
+        private const float AcceptableCompressionPercent = 40; //40% reduction. I.e. 100 bytes -> 60 bytes
         private static byte[] GetFileContents(string filePath, TokenType fileType)
         {
             if (!File.Exists(filePath))
@@ -155,6 +155,7 @@ namespace Cruncher.Script.Packing
 
                 entry.offset = currentOffset;
                 entry.size = fileDatas[i].isCompressed ? (ulong)fileDatas[i].compression.compressed.Length : (ulong)data.Length;
+                entry.compressed = fileDatas[i].isCompressed;
 
                 //If compression is not allowed, i.e. we are on version 2.1.0- then we need to set the size to the uncompressed size
                 if (package.Version < new Version(2, 2, 0))
@@ -187,6 +188,13 @@ namespace Cruncher.Script.Packing
                 byte[] bytes = System.Text.Encoding.UTF8.GetBytes(entry.name);
                 writer.Write(bytes);
                 writer.Write((byte)0x00); //Null terminator
+
+                //If we are on a build that supports compression
+                //then we have to write the compressed flag
+                if (package.Version >= new Version(2, 2, 0))
+                {
+                    writer.Write(entry.compressed ? (byte)0xff : (byte)0);
+                }
 
                 writer.Write(entry.size);
                 writer.Write(entry.offset);
