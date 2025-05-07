@@ -3,11 +3,14 @@ using Cruncher.Script.Interpreter;
 using System.Runtime.InteropServices;
 using Cruncher.Script.Lexer;
 using System.IO.Compression;
+using ICSharpCode.SharpZipLib.GZip;
 
 namespace Cruncher.Script.Packing
 {
     public sealed class Packer(Package[] packages)
     {
+        private static Version mVersion;
+
         struct Header
         {
             public uint Magic; //0x434E5243 We actually need to reverse this since, otherwise in will be CNRC in a hex editor. We want to store it in big endian
@@ -34,7 +37,13 @@ namespace Cruncher.Script.Packing
             {
                 ulong size = 0;
                 foreach (FileEntry entry in entries)
+                {
                     size += (ulong)(Marshal.SizeOf<ulong>() * 3) + (ulong)entry.name.Length + 1;
+
+                    //Add compression byte
+                    if (mVersion >= new Version(2, 2, 0))
+                        ++size;
+                }
 
                 return size;
             }
@@ -79,15 +88,16 @@ namespace Cruncher.Script.Packing
         private static byte[] Compress(byte[] data)
         {
             using MemoryStream output = new();
-            using ZLibStream compressor = new(output, CompressionLevel.Optimal, true);
-            compressor.Write(data, 0, data.Length);
-            compressor.Flush();
+            using GZipOutputStream gzipStream = new(output);
+            gzipStream.Write(data, 0, data.Length);
 
             return output.ToArray();
         }
 
-        private void Pack(Package package, string outputDir)
+        private static void Pack(Package package, string outputDir)
         {
+            mVersion = package.Version;
+
             Header header = new()
             {
                 Magic = 0x434E5243,
