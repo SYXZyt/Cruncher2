@@ -88,8 +88,14 @@ namespace Cruncher.Script.Packing
         private static byte[] Compress(byte[] data)
         {
             using MemoryStream output = new();
-            using GZipOutputStream gzipStream = new(output);
+            using GZipOutputStream gzipStream = new(output)
+            {
+                IsStreamOwner = false // So that disposing gzipStream won't close the MemoryStream
+            };
+
             gzipStream.Write(data, 0, data.Length);
+            gzipStream.Flush(); // Ensure all data is written
+            gzipStream.Close(); // Finalise the gzip stream (writes footer, etc.)
 
             return output.ToArray();
         }
