@@ -2,6 +2,7 @@
 using Cruncher.Script.Interpreter;
 using System.Runtime.InteropServices;
 using Cruncher.Script.Lexer;
+using System.IO.Compression;
 
 namespace Cruncher.Script.Packing
 {
@@ -20,6 +21,7 @@ namespace Cruncher.Script.Packing
         {
             public string name;
             public ulong hash;
+            public bool compressed;
             public ulong offset;
             public ulong size;
         }
@@ -38,13 +40,21 @@ namespace Cruncher.Script.Packing
             }
         }
 
+        struct FileCompression
+        {
+            public byte[] compressed;
+            public float reductionPercent;
+        }
+
         struct FileData
         {
             public byte[] data;
+            public FileCompression compression;
+            public bool isCompressed;
         }
 
         private readonly Package[] mPackages = packages;
-
+        private const float AcceptableCompressionPercent = 20;
         private static byte[] GetFileContents(string filePath, TokenType fileType)
         {
             if (!File.Exists(filePath))
@@ -64,6 +74,16 @@ namespace Cruncher.Script.Packing
             }
 
             return null;
+        }
+
+        private static byte[] Compress(byte[] data)
+        {
+            using MemoryStream output = new();
+            using ZLibStream compressor = new(output, CompressionLevel.Optimal, true);
+            compressor.Write(data, 0, data.Length);
+            compressor.Flush();
+
+            return output.ToArray();
         }
 
         private void Pack(Package package, string outputDir)
@@ -117,14 +137,35 @@ namespace Cruncher.Script.Packing
                     continue;
                 }
 
-                entry.offset = currentOffset;
-                entry.size = (ulong)data.Length;
-                currentOffset += entry.size;
-
                 fileDatas[i] = new FileData
                 {
                     data = data,
+                    compression = new FileCompression
+                    {
+                        compressed = Compress(data),
+                    },
+                    isCompressed = false,
                 };
+
+                float compressedSize = fileDatas[i].compression.compressed.Length;
+                float originalSize = data.Length;
+
+                fileDatas[i].compression.reductionPercent = (1.0f - ((float)compressedSize / (float)originalSize)) * 100.0f;
+                fileDatas[i].isCompressed = fileDatas[i].compression.reductionPercent >= AcceptableCompressionPercent;
+
+                entry.offset = currentOffset;
+                entry.size = fileDatas[i].isCompressed ? (ulong)fileDatas[i].compression.compressed.Length : (ulong)data.Length;
+
+                //If compression is not allowed, i.e. we are on version 2.1.0- then we need to set the size to the uncompressed size
+                if (package.Version < new Version(2, 2, 0))
+                {
+                    fileDatas[i].isCompressed = false;
+                }
+
+                currentOffset += entry.size;
+
+                if (fileDatas[i].isCompressed)
+                    IO.Log($"Compressing file '[yellow]{entry.name}[/]' with reduction of [green]{fileDatas[i].compression.reductionPercent:f1}%[/]");
             }
 
             //We should now have all the data we need to write the package to disk
@@ -151,7 +192,9 @@ namespace Cruncher.Script.Packing
                 writer.Write(entry.offset);
             }
             foreach (FileData fileData in fileDatas)
-                writer.Write(fileData.data);
+            {
+                writer.Write(fileData.isCompressed ? fileData.compression.compressed : fileData.data);
+            }
 
             writer.Flush();
             stream.Close();

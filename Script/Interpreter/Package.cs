@@ -3,10 +3,11 @@ using Cruncher.Util;
 
 namespace Cruncher.Script.Interpreter
 {
-    public sealed class Package(string name)
+    public sealed class Package(string name, Version version)
     {
         private readonly string mName = name;
         private string mExt = null;
+        private readonly Version mVersion = version;
 
         private readonly List<Tuple<string, TokenType>> mFiles = [];
 
@@ -21,6 +22,9 @@ namespace Cruncher.Script.Interpreter
 
         public Tuple<string, TokenType>[] Files =>
            [.. mFiles];
+
+        public Version Version =>
+            mVersion;
 
         public void AddFile(string file, TokenType fileType)
         {

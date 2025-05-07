@@ -5,7 +5,8 @@ alias(txt FileType_TEXT)
 add_package(TextFile)
 
 add_file(TextFile FileType_TEXT "testA.txt")
+add_file(TextFile FileType_TEXT "large.txt")
 add_folder(TextFile FolderTest)
 
-output_dir(Ouput/)
+output_dir(Ouput)
 output_extension(TextFile pak)
