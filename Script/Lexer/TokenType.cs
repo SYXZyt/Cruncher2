@@ -32,5 +32,9 @@
         OUTPUT_EXTENSION,
         OUTPUT_DIR,
         #endregion
+    public static class TokenTypeExtensions
+    {
+        public static bool IsFileType(this TokenType type) =>
+            type == TokenType.FT_TEXT || type == TokenType.FT_BINARY;
     }
 }

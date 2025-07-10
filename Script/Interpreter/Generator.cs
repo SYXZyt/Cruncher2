@@ -255,8 +255,14 @@ namespace Cruncher.Script.Interpreter
                     Package package = GetPackage(addFile.ParamList.Parameters[0]);
 
                     TokenType fileType = addFile.ParamList.Parameters[1].type;
+                    if (!fileType.IsFileType())
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError("Expected file type");
+                        continue;
+                    }
 
-                    if (addFile.ParamList.Parameters.Length < 2)
+                    if (addFile.ParamList.Parameters.Length < 3)
                     {
                         mErrorOccurred = true;
                         IO.LogError("File name must be specified");
@@ -273,8 +279,6 @@ namespace Cruncher.Script.Interpreter
                             IO.TokenError("File name must be either an identifier or a string", param);
                             continue;
                         }
-
-                        string fileExt = Path.GetExtension(param.lexeme)[1..^0];
 
                         AddFile(package, param.lexeme, fileType);
                     }
