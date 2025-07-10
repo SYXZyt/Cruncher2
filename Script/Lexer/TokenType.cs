@@ -32,6 +32,13 @@
         OUTPUT_EXTENSION,
         OUTPUT_DIR,
         #endregion
+
+        #region 2.2.1
+        REJECT,
+        REJECT_FOLDER,
+        #endregion
+    }
+
     public static class TokenTypeExtensions
     {
         public static bool IsFileType(this TokenType type) =>

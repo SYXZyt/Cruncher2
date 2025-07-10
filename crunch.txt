@@ -7,7 +7,11 @@ add_package(TextFile)
 add_file(TextFile FileType_TEXT "bunker.json")
 add_file(TextFile FileType_TEXT "testA.txt")
 add_file(TextFile FileType_TEXT "large.txt")
+add_file(TextFile FileType_TEXT "FolderTest/DirTest/ignore_me.txt")
 add_folder(TextFile FolderTest)
+
+reject("ignore_me.txt")
+reject_folder("Ignore")
 
 output_dir(Ouput)
 output_extension(TextFile pak)

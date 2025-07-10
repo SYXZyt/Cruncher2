@@ -7,7 +7,7 @@
         public byte patch = patch;
 
         public static Version Current =>
-            new(2, 2, 0);
+            new(2, 2, 1);
 
         public readonly uint PackedVersion =>
             (uint)((major << 16) | (minor << 8) | patch);

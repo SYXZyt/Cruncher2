@@ -177,6 +177,8 @@ namespace Cruncher.Script.Lexer
             keywords["add_folder"] = TokenType.ADD_FOLDER;
             keywords["output_extension"] = TokenType.OUTPUT_EXTENSION;
             keywords["output_dir"] = TokenType.OUTPUT_DIR;
+            keywords["reject"] = TokenType.REJECT;
+            keywords["reject_folder"] = TokenType.REJECT_FOLDER;
 
             //File types
             keywords["FileType_TEXT"] = TokenType.FT_TEXT;

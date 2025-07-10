@@ -160,6 +160,40 @@ namespace Cruncher.Script.Parsing
             return new OutputDir(function, paramList);
         }
 
+        private Reject ParseReject()
+        {
+            Token function = Current;
+            ++mCurrent;
+            ParamList paramList = ParseParamList();
+            if (paramList is null)
+                return null;
+
+            if (paramList.Parameters.Length != 1)
+            {
+                IO.TokenError("Expected one parameter for reject", function);
+                mErrorOccurred = true;
+                return null;
+            }
+
+            return new Reject(function, paramList);
+        }
+
+        private RejectFolder ParseRejectFolder()
+        {
+            Token function = Current;
+            ++mCurrent;
+            ParamList paramList = ParseParamList();
+            if (paramList is null)
+                return null;
+            if (paramList.Parameters.Length != 1)
+            {
+                IO.TokenError("Expected one parameter for reject_folder", function);
+                mErrorOccurred = true;
+                return null;
+            }
+            return new RejectFolder(function, paramList);
+        }
+
         private Node ParseFunctionCall()
         {
             if (Current.type == TokenType.REQUIRE_VERSION)
@@ -176,6 +210,31 @@ namespace Cruncher.Script.Parsing
                 return ParseOutputExtension();
             else if (Current.type == TokenType.OUTPUT_DIR)
                 return ParseOutputDir();
+
+            else if (Current.type == TokenType.REJECT)
+            {
+                if (Version.Current < new Version(2, 2, 1))
+                {
+                    IO.TokenError("The 'reject' function is not supported in this version of the script.", Current);
+                    mErrorOccurred = true;
+                    ++mCurrent;
+                    return null;
+                }
+
+                return ParseReject();
+            }
+            else if (Current.type == TokenType.REJECT_FOLDER)
+            {
+                if (Version.Current < new Version(2, 2, 1))
+                {
+                    IO.TokenError("The 'reject_folder' function is not supported in this version of the script.", Current);
+                    mErrorOccurred = true;
+                    ++mCurrent;
+                    return null;
+                }
+
+                return ParseRejectFolder();
+            }
 
             string msg;
             if (Current.type == TokenType.IDENTIFIER)

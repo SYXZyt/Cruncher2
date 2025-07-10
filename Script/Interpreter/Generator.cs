@@ -1,8 +1,9 @@
-﻿using Cruncher.Script.Parsing;
+﻿using Cruncher.Interfaces;
 using Cruncher.Script.Lexer;
-using Cruncher.Interfaces;
+using Cruncher.Script.Parsing;
 using Cruncher.Script.Parsing.Nodes;
 using Cruncher.Util;
+using System.IO;
 
 namespace Cruncher.Script.Interpreter
 {
@@ -15,6 +16,8 @@ namespace Cruncher.Script.Interpreter
 
         private readonly Dictionary<string, Token> mAlias = [];
         private readonly List<Package> mPackages = [];
+        private readonly List<string> mFilesToIgnore = [];
+        private readonly List<string> mFoldersToIgnore = [];
 
         private Version mVersion = Version.Current;
 
@@ -71,8 +74,35 @@ namespace Cruncher.Script.Interpreter
             return pkg;
         }
 
+        private bool IsPathInARejectedFolder(string path)
+        {
+            string fullPath = Path.GetFullPath(path);
+            string[] directoriesInPath = fullPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+            foreach (string folder in mFoldersToIgnore)
+            {
+                foreach (string dir in directoriesInPath)
+                {
+                    if (string.Equals(dir, folder, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private void AddFile(Package pkg, string file, TokenType fileType)
         {
+            //If the file is in the ignore list, skip it
+            //But also if it in a folder which is in the ignore list
+            if (mFilesToIgnore.Contains(Path.GetFileName(file)) || IsPathInARejectedFolder(file))
+            {
+                IO.LogWarning($"File: [yellow]{file}[/] is ignored");
+                return;
+            }
+
             if (!File.Exists(file))
             {
                 IO.LogError($"File {Path.GetFullPath(file)} does not exist");
@@ -95,9 +125,23 @@ namespace Cruncher.Script.Interpreter
                 return;
             }
 
+            if (IsPathInARejectedFolder(folder))
+            {
+                IO.LogWarning($"Folder: [yellow]{folder}[/] is ignored");
+                return;
+            }
+
             string[] files = Directory.GetFiles(folder, "*.*", SearchOption.AllDirectories);
             foreach (string file in files)
             {
+                string withoutRoot = Path.GetFileName(file);
+
+                if (mFilesToIgnore.Contains(withoutRoot) || IsPathInARejectedFolder(file))
+                {
+                    IO.LogWarning($"File: [yellow]{file}[/] is ignored");
+                    continue;
+                }
+
                 string fileName = Path.GetFileName(file);
                 string fileExt = Path.GetExtension(fileName)[1..^0];
                 if (mAlias.TryGetValue(fileExt, out Token fileType))
@@ -231,12 +275,62 @@ namespace Cruncher.Script.Interpreter
             return false;
         }
 
+        private void FillInRejections()
+        {
+            if (Version.Current < new Version(2, 1, 0))
+                return;
+
+            foreach (Node node in mNodes)
+            {
+                if (node is Reject reject)
+                {
+                    if (reject.ParamList.Parameters.Length != 1)
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError("Reject must have 1 parameter");
+                        continue;
+                    }
+                    ref Token param = ref reject.ParamList.Parameters[0];
+                    if (param.type != TokenType.IDENTIFIER && param.type != TokenType.STRING)
+                    {
+                        mErrorOccurred = true;
+                        IO.TokenError("Reject parameter must be either an identifier or a string", param);
+                        continue;
+                    }
+                    mFilesToIgnore.Add(param.lexeme);
+                    IO.LogSuccess($"Added file to ignore: [yellow]{param.lexeme}[/]");
+                }
+                else if (node is RejectFolder rejectFolder)
+                {
+                    if (rejectFolder.ParamList.Parameters.Length != 1)
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError("Reject folder must have 1 parameter");
+                        continue;
+                    }
+                    ref Token param = ref rejectFolder.ParamList.Parameters[0];
+                    if (param.type != TokenType.IDENTIFIER && param.type != TokenType.STRING)
+                    {
+                        mErrorOccurred = true;
+                        IO.TokenError("Reject folder parameter must be either an identifier or a string", param);
+                        continue;
+                    }
+                    mFoldersToIgnore.Add(param.lexeme);
+                    IO.LogSuccess($"Added folder to ignore: [yellow]{param.lexeme}[/]");
+                }
+            }
+        }
+
         public Package[] Generate(out string oOutputDir)
         {
             oOutputDir = "";
 
             IO.Log("Generating");
             CheckVersion();
+            if (CheckFailure())
+                return null;
+
+            FillInRejections();
             if (CheckFailure())
                 return null;
 
@@ -378,7 +472,7 @@ namespace Cruncher.Script.Interpreter
                     mOutputDir = param.lexeme;
                     IO.LogSuccess($"Set output directory: [yellow]'{mOutputDir}'[/]");
                 }
-                else if (node is RequireVersion or Alias or PackageDef) { }
+                else if (node is RequireVersion or Alias or PackageDef or Reject or RejectFolder) { }
                 else
                 {
                     mErrorOccurred = true;
