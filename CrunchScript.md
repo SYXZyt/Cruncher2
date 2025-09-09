@@ -12,4 +12,4 @@
 | output_dir | Specifies a directory for the output packages to be written to. Effects all packages | path: `identifier` or `string` | `2.1.0` |
 | reject | Prevents `add_folder` from adding a specific file | file: `identifier` or `string` | `2.1.0` |
 | reject_folder | Prevents `add_folder` from adding files in a specific folder | path: `identifier` or `string` | `2.1.0` |
-| reject_extension | Prevents both `add_file` and `add_folder` from adding a file with a specific extension. Note that the `.` is required. E.g. `.txt` is valid, `txt` is undefined | extension: `string` | `2.2.0` |
+| reject_extension | Prevents both `add_file` and `add_folder` from adding a file with a specific extension. Note that the `.` must not be included. E.g. `txt` is valid, `.txt` is undefined | extension: `string` | `2.2.0` |

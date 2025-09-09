@@ -30,7 +30,7 @@
     <None Update="FolderTest\DirTest\testC.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="FolderTest\ignore_me.bak">
+    <None Update="FolderTest\ignore_me.txt.bak">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="FolderTest\testB.txt">
