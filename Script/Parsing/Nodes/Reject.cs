@@ -15,4 +15,11 @@ namespace Cruncher.Script.Parsing.Nodes
         public ParamList ParamList =>
             mParamList;
     }
+
+    public sealed class RejectExtension(Token token, ParamList paramList) : Node(token)
+    {
+        private readonly ParamList mParamList = paramList;
+        public ParamList ParamList =>
+            mParamList;
+    }
 }

@@ -18,6 +18,7 @@ namespace Cruncher.Script.Interpreter
         private readonly List<Package> mPackages = [];
         private readonly List<string> mFilesToIgnore = [];
         private readonly List<string> mFoldersToIgnore = [];
+        private readonly List<string> mExtensionsToIgnore = [];
 
         private Version mVersion = Version.Current;
 
@@ -103,6 +104,13 @@ namespace Cruncher.Script.Interpreter
                 return;
             }
 
+            string fileExt = Path.GetExtension(file)[1..^0];
+            if (mExtensionsToIgnore.Contains(fileExt))
+            {
+                IO.LogWarning($"File: [yellow]{file}[/] is ignored due to its extension being rejected");
+                return;
+            }
+
             if (!File.Exists(file))
             {
                 IO.LogError($"File {Path.GetFullPath(file)} does not exist");
@@ -136,7 +144,7 @@ namespace Cruncher.Script.Interpreter
             {
                 string withoutRoot = Path.GetFileName(file);
 
-                if (mFilesToIgnore.Contains(withoutRoot) || IsPathInARejectedFolder(file))
+                if (mFilesToIgnore.Contains(withoutRoot) || IsPathInARejectedFolder(file) || IsFileRejected(file))
                 {
                     IO.LogWarning($"File: [yellow]{file}[/] is ignored");
                     continue;
@@ -144,6 +152,8 @@ namespace Cruncher.Script.Interpreter
 
                 string fileName = Path.GetFileName(file);
                 string fileExt = Path.GetExtension(fileName)[1..^0];
+
+
                 if (mAlias.TryGetValue(fileExt, out Token fileType))
                 {
                     pkg.AddFile(file, fileType.type);
@@ -155,6 +165,19 @@ namespace Cruncher.Script.Interpreter
                     mErrorOccurred = true;
                 }
             }
+        }
+
+        private bool IsFileRejected(string file)
+        {
+            string fileName = Path.GetFileName(file);
+            if (mFilesToIgnore.Contains(fileName))
+                return true;
+
+            string fileExt = Path.GetExtension(file)[1..^0];
+            if (mExtensionsToIgnore.Contains(fileExt))
+                return true;
+
+            return false;
         }
 
         private void CreatePackages()
@@ -318,6 +341,33 @@ namespace Cruncher.Script.Interpreter
                     mFoldersToIgnore.Add(param.lexeme);
                     IO.LogSuccess($"Added folder to ignore: [yellow]{param.lexeme}[/]");
                 }
+                else if (node is RejectExtension rejectExtension)
+                {
+                    Version required = new(2, 2, 2);
+                    if (mVersion < required)
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError($"reject_extension requires version: [yellow]{required.major}.{required.minor}.{required.patch}[/]");
+                        continue;
+                    }
+
+                    if (rejectExtension.ParamList.Parameters.Length != 1)
+                    {
+                        mErrorOccurred = true;
+                        IO.LogError("Reject extension must have 1 parameter");
+                        continue;
+                    }
+
+                    ref Token param = ref rejectExtension.ParamList.Parameters[0];
+                    if (param.type != TokenType.IDENTIFIER && param.type != TokenType.STRING)
+                    {
+                        mErrorOccurred = true;
+                        IO.TokenError("Reject extension parameter must be either an identifier or a string", param);
+                        continue;
+                    }
+
+                    mExtensionsToIgnore.Add(param.lexeme);
+                }
             }
         }
 
@@ -472,7 +522,7 @@ namespace Cruncher.Script.Interpreter
                     mOutputDir = param.lexeme;
                     IO.LogSuccess($"Set output directory: [yellow]'{mOutputDir}'[/]");
                 }
-                else if (node is RequireVersion or Alias or PackageDef or Reject or RejectFolder) { }
+                else if (node is RequireVersion or Alias or PackageDef or Reject or RejectFolder or RejectExtension) { }
                 else
                 {
                     mErrorOccurred = true;

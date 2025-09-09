@@ -37,11 +37,15 @@
         REJECT,
         REJECT_FOLDER,
         #endregion
+
+        #region 2.2.2
+        REJECT_EXTENSION,
+        #endregion
     }
 
     public static class TokenTypeExtensions
     {
         public static bool IsFileType(this TokenType type) =>
-            type == TokenType.FT_TEXT || type == TokenType.FT_BINARY;
+            type is TokenType.FT_TEXT or TokenType.FT_BINARY;
     }
 }

@@ -235,6 +235,28 @@ namespace Cruncher.Script.Parsing
 
                 return ParseRejectFolder();
             }
+            else if (Current.type == TokenType.REJECT_EXTENSION)
+            {
+                if (Version.Current < new Version(2, 2, 2))
+                {
+                    IO.TokenError("The 'reject_extension' function is not supported in this version of the script.", Current);
+                    mErrorOccurred = true;
+                    ++mCurrent;
+                    return null;
+                }
+                Token function = Current;
+                ++mCurrent;
+                ParamList paramList = ParseParamList();
+                if (paramList is null)
+                    return null;
+                if (paramList.Parameters.Length != 1)
+                {
+                    IO.TokenError("Expected one parameter for reject_extension", function);
+                    mErrorOccurred = true;
+                    return null;
+                }
+                return new RejectExtension(function, paramList);
+            }
 
             string msg;
             if (Current.type == TokenType.IDENTIFIER)

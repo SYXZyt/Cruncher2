@@ -9,9 +9,11 @@ add_file(TextFile FileType_TEXT "testA.txt")
 add_file(TextFile FileType_TEXT "large.txt")
 add_file(TextFile FileType_TEXT "FolderTest/DirTest/ignore_me.txt")
 add_folder(TextFile FolderTest)
+add_file(TextFile FileType_TEXT "FolderTest/ignore_me.bak")
 
 reject("ignore_me.txt")
 reject_folder("Ignore")
+reject_extension("bak")
 
 output_dir(Ouput)
 output_extension(TextFile pak)
